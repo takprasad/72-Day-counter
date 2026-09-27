@@ -41,26 +41,6 @@
     align-items: center;
   }
 
-  button.primary{
-    appearance: none;
-    border: none;
-    cursor: pointer;
-    background: var(--amber);
-    color: #1a1200;
-    font-family: "Anton", sans-serif;
-    font-weight: 400;
-    font-size: clamp(1.6rem, 6vw, 2.6rem);
-    padding: 1.1rem 2.6rem;
-    border-radius: 3px;
-    letter-spacing: 0.01em;
-    transition: transform 0.15s ease, background 0.15s ease;
-  }
-  button.primary:hover{ background: #e0993a; }
-  button.primary:active{ transform: scale(0.97); }
-  button.primary:focus-visible{ outline: 2px solid var(--chalk); outline-offset: 3px; }
-
-  #count-screen{ display: none; }
-
   .days-figure{
     font-family: "Anton", "Arial Narrow", sans-serif;
     font-weight: 400;
@@ -84,40 +64,19 @@
   #done-screen{ display: none; }
   #done-screen .days-figure{ color: var(--amber); }
 
-  .reset{
-    background: none;
-    border: none;
-    color: var(--chalk-dim);
-    font-family: inherit;
-    font-size: 0.8rem;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    opacity: 0.5;
-    margin-top: 2rem;
-  }
-  .reset:hover{ opacity: 1; }
-  .reset:focus-visible{ outline: 2px solid var(--chalk-dim); outline-offset: 2px; }
-
 </style>
 </head>
 <body>
 
   <div class="wrap">
 
-    <section id="start-screen">
-      <button class="primary" id="start-btn">Start</button>
-    </section>
-
     <section id="count-screen">
       <p class="days-figure" id="days-figure" aria-live="polite">72</p>
       <p class="clock" id="clock-text">00 : 00 : 00</p>
-      <button class="reset" id="reset-btn-active">reset</button>
     </section>
 
     <section id="done-screen">
       <p class="days-figure">0</p>
-      <button class="reset" id="reset-btn-done">start again</button>
     </section>
 
   </div>
@@ -126,14 +85,17 @@
 (function(){
   "use strict";
 
+  // Fixed start: 27 Sept 2026, 2:00 AM (local time). Countdown runs 72 days from here.
+  var START = new Date(2026, 8, 27, 2, 0, 0); // month is 0-indexed: 8 = September
   var TOTAL_DAYS = 72;
-  var STORAGE_KEY = "countdown72:target"; // stored as timestamp (ms) of the finish moment
+
+  var target = new Date(START);
+  target.setDate(target.getDate() + TOTAL_DAYS);
+  var targetMs = target.getTime();
 
   var els = {
-    start: document.getElementById("start-screen"),
     count: document.getElementById("count-screen"),
     done: document.getElementById("done-screen"),
-    startBtn: document.getElementById("start-btn"),
     daysFigure: document.getElementById("days-figure"),
     clockText: document.getElementById("clock-text")
   };
@@ -141,7 +103,7 @@
   function pad(n){ return String(n).padStart(2, "0"); }
 
   function showOnly(section){
-    [els.start, els.count, els.done].forEach(function(s){
+    [els.count, els.done].forEach(function(s){
       s.style.display = (s === section) ? "flex" : "none";
     });
     section.style.flexDirection = "column";
@@ -149,11 +111,7 @@
   }
 
   function tick(){
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw){ showOnly(els.start); return; }
-
-    var target = Number(raw);
-    var remaining = target - Date.now();
+    var remaining = targetMs - Date.now();
 
     if (remaining <= 0){
       showOnly(els.done);
@@ -171,26 +129,6 @@
 
     showOnly(els.count);
   }
-
-  function start(){
-    var tomorrow = new Date();
-    tomorrow.setHours(0,0,0,0);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setDate(tomorrow.getDate() + TOTAL_DAYS);
-    localStorage.setItem(STORAGE_KEY, String(tomorrow.getTime()));
-    tick();
-  }
-
-  function reset(){
-    if (window.confirm("Reset the countdown?")){
-      localStorage.removeItem(STORAGE_KEY);
-      tick();
-    }
-  }
-
-  els.startBtn.addEventListener("click", start);
-  document.getElementById("reset-btn-active").addEventListener("click", reset);
-  document.getElementById("reset-btn-done").addEventListener("click", reset);
 
   tick();
   setInterval(tick, 1000);
